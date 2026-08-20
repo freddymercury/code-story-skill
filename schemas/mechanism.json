@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Code Story Mechanism",
+  "type": "object",
+  "required": ["question", "summary", "evidence", "why_sources", "uncertainties"],
+  "properties": {
+    "question": { "type": "string" },
+    "summary": { "type": "string" },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "role"],
+        "properties": {
+          "file": { "type": "string" },
+          "lines": { "type": "string" },
+          "role": { "type": "string" },
+          "excerpt": { "type": "string" }
+        }
+      }
+    },
+    "why_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "claim"],
+        "properties": {
+          "source": { "type": "string" },
+          "claim": { "type": "string" },
+          "confidence": { "type": "string", "enum": ["documented", "strong-inference", "uncertain"] }
+        }
+      }
+    },
+    "uncertainties": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "supporting_tests": { "type": "array", "items": { "type": "string" } }
+  }
+}
