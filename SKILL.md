@@ -22,7 +22,13 @@ Do **not** hard-code concrete model names in this skill. Use these capability hi
 - `economy` — moderate reasoning, mechanism discovery, codebase context, and rationale research.
 - `premium` — architecture interpretation, ambiguous reasoning, final teaching narrative, and adversarial review.
 
-The host/router maps capability hints to actual models. If routing metadata is unsupported, treat them as prioritization guidance rather than required syntax.
+The host/router maps capability hints to actual models. These hints are portable policy, not provider IDs:
+
+- If the harness exposes a suitable local model/provider, `local-ok` may use it.
+- If no local model is available, `local-ok` should fall back to the cheapest suitable hosted model rather than fail.
+- `economy` and `premium` map to the harness's own capable model classes; they may also be local if the harness has sufficiently capable local inference.
+- Agent identity must remain separate from model identity. Do not permanently bind `evidence-finder`, `reviewer`, or another role to one concrete model.
+- If routing metadata is unsupported, treat the hints as prioritization guidance and choose the closest available execution target.
 
 ## Workflow
 
@@ -139,11 +145,13 @@ If the host has a richer publishing mechanism, it may additionally publish the s
 
 Mechanical workers may run in parallel when they inspect independent files or evidence sources. Do not spawn multiple heavyweight local models merely because parallelism is available; respect host memory limits and router concurrency policy.
 
-For small-memory local machines, prefer one substantial local worker at a time and move reasoning-heavy work to hosted `economy`/`premium` routes.
+For small-memory local machines, prefer one substantial local worker at a time. If the harness has no local inference, route `local-ok` work to a cheap hosted model instead. If the harness already has a concurrency policy, defer to it.
 
 ## Failure modes to avoid
 
 - forcing every worker onto one named model
+- assuming `local-ok` requires a specific local provider
+- failing when no local model exists instead of using a cheap hosted fallback
 - using local solely because a task is easy even when an interactive caller needs low latency
 - sending all repository reading to a premium model
 - treating the diff as the only source of truth
