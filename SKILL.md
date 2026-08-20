@@ -79,7 +79,7 @@ Each mechanism needs:
 
 ### 4. Author the story
 
-Read [`examples/pi-openrouter/index.html`](examples/pi-openrouter/index.html) as the local finished example. It demonstrates the chapter shape, source/uncertainty treatment, diagram restraint, and how to handle a design story with no implementation diff yet.
+Read [`examples/pi-model-orchestrator/index.html`](examples/pi-model-orchestrator/index.html) as the local finished example. It demonstrates the chapter shape, source/uncertainty treatment, diagram restraint, explicit theme control, and how to handle a design story.
 
 Copy [`references/template.html`](references/template.html) to the output location and write one `<article>` per mechanism into `<main>`.
 
@@ -97,6 +97,15 @@ Writing rules:
 - include a final section explaining where each important "why" came from
 - include unresolved questions rather than hiding them
 
+UI rules:
+
+- every generated story must support both light and dark themes
+- include a visible Light/Dark toggle in the header
+- default to the user's OS preference when no saved choice exists
+- persist the explicit choice with `localStorage`
+- theme switching must update the page without requiring a rebuild
+- keep both themes accessible with adequate contrast for prose, code, callouts, rules, and controls
+
 ### 5. Review the story adversarially
 
 Run [`agents/story-reviewer.md`](agents/story-reviewer.md) with capability `premium` for important or complex changes.
@@ -110,6 +119,7 @@ The reviewer should challenge:
 - misleading simplifications
 - omitted risks or questionable implementation details
 - chapters that assume repository knowledge a new contributor would not have
+- missing or broken Light/Dark theme controls
 
 Revise only where the reviewer identifies concrete issues.
 
@@ -140,3 +150,4 @@ For small-memory local machines, prefer one substantial local worker at a time a
 - turning filenames into chapter titles
 - silently filling gaps in rationale
 - polishing an explanation before the evidence package is complete
+- shipping a story without a working Light/Dark toggle
