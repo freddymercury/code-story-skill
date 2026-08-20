@@ -25,14 +25,13 @@ Your router decides the concrete provider/model. On a small-memory local machine
 
 ## Dogfood example
 
-The repo includes a full run of the skill against the proposed **Pi + Ollama + OpenRouter** agent-routing design:
+The repo includes a full run of the skill against the actual **`freddymercury/pi-model-orchestrator`** design and implementation:
 
-- `examples/pi-openrouter/DESIGN.md` — design input
-- `examples/pi-openrouter/mechanisms.json` — mechanism-first intermediate representation
-- `examples/pi-openrouter/index.html` — rendered six-chapter story
-- `examples/pi-openrouter/review.json` — adversarial reviewer output
+- `examples/pi-model-orchestrator/mechanisms.json` — mechanism-first intermediate representation
+- `examples/pi-model-orchestrator/index.html` — rendered five-chapter story
+- `examples/pi-model-orchestrator/review.json` — adversarial reviewer output
 
-This example deliberately surfaces unresolved implementation questions instead of inventing answers.
+This example is grounded in the real orchestrator repo and deliberately surfaces unresolved implementation questions instead of inventing answers.
 
 ## Layout
 
@@ -48,8 +47,7 @@ references/
 schemas/
   mechanism.json
 examples/
-  pi-openrouter/
-    DESIGN.md
+  pi-model-orchestrator/
     mechanisms.json
     index.html
     review.json
