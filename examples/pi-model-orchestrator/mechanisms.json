@@ -1,0 +1,57 @@
+{
+  "source": "freddymercury/pi-model-orchestrator",
+  "kind": "design-and-config story",
+  "mechanisms": [
+    {
+      "question": "Why is local execution outside the low/medium/high quality ladder?",
+      "summary": "Execution mode and task complexity are separate decisions. Background, local-safe work can go directly to Ollama; interactive work stays on the hosted router so an easy task is not made slow merely because it is easy.",
+      "evidence": [
+        {"file": "README.md", "role": "defines local as an execution policy rather than a quality tier"},
+        {"file": "policy.md", "role": "makes execution mode the deterministic first decision"}
+      ],
+      "whySources": ["project design", "pi-model-router's verified three-tier shape"],
+      "uncertainties": []
+    },
+    {
+      "question": "How does the interactive path turn complexity into a concrete hosted model?",
+      "summary": "pi-model-router owns the low/medium/high decision for interactive work. The current profile maps low to Haiku 4.5, medium to DeepSeek V4 Flash Latest, and high to Claude Sonnet Latest.",
+      "evidence": [
+        {"file": "model-router.json", "role": "declares classifier, budget, phase bias, and all three tier mappings"},
+        {"file": "README.md", "role": "explains why all three interactive tiers stay hosted"}
+      ],
+      "whySources": ["pi-model-router upstream configuration contract", "project design"],
+      "uncertainties": ["Concrete model aliases intentionally track moving hosted families and should be periodically revalidated."]
+    },
+    {
+      "question": "How can a worker use Ollama without becoming 'the Qwen agent'?",
+      "summary": "Agent identity and model identity are decoupled. The worker receives execution context per task and chooses either an explicit local model for background/local-safe work or model:auto for the normal Pi routing path.",
+      "evidence": [
+        {"file": "agents/worker.md", "role": "defines WorkerRouting and the spawnWorker example"},
+        {"file": "README.md", "role": "states that concrete models are configuration rather than agent identity"}
+      ],
+      "whySources": ["pi-orchestration model:auto support", "project design"],
+      "uncertainties": ["Automatic propagation of mode/locality metadata through every Pi call is not implemented by this repo yet."]
+    },
+    {
+      "question": "What constraints are allowed to override the normal model choice?",
+      "summary": "Privacy/locality is a hard eligibility constraint, while escalation is evidence-driven. Hosted models are removed before routing for local-only data, and expensive escalation happens when the task proves harder than classified rather than as a mandatory second opinion.",
+      "evidence": [
+        {"file": "policy.md", "role": "defines privacy override and escalation policy"},
+        {"file": "agents/worker.md", "role": "defines local-only versus hosted-ok locality"}
+      ],
+      "whySources": ["project design"],
+      "uncertainties": []
+    },
+    {
+      "question": "Why are benchmarking and observability part of routing rather than cleanup work?",
+      "summary": "Labels such as local, fast, and cheap are hypotheses until measured. The design records latency, cost, tokens, failures, and escalation reasons and uses a machine-specific benchmark before increasing local concurrency.",
+      "evidence": [
+        {"file": "policy.md", "role": "lists routing telemetry that should be recorded"},
+        {"file": "benchmarks/README.md", "role": "defines local-versus-hosted benchmark tasks and concurrency decision rule"},
+        {"file": "agents/worker.md", "role": "defaults local concurrency to one until measured"}
+      ],
+      "whySources": ["project design", "machine constraint"],
+      "uncertainties": ["No benchmark numbers have been collected yet, so qwen2.5-coder:7b and concurrency=1 remain conservative defaults rather than measured optima."]
+    }
+  ]
+}
