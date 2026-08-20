@@ -23,6 +23,17 @@ This fork keeps the original core idea — **one chapter per mechanism, not per 
 
 Your router decides the concrete provider/model. On a small-memory local machine, keep local concurrency conservative and let hosted models absorb heavier reasoning.
 
+## Dogfood example
+
+The repo includes a full run of the skill against the proposed **Pi + Ollama + OpenRouter** agent-routing design:
+
+- `examples/pi-openrouter/DESIGN.md` — design input
+- `examples/pi-openrouter/mechanisms.json` — mechanism-first intermediate representation
+- `examples/pi-openrouter/index.html` — rendered six-chapter story
+- `examples/pi-openrouter/review.json` — adversarial reviewer output
+
+This example deliberately surfaces unresolved implementation questions instead of inventing answers.
+
 ## Layout
 
 ```text
@@ -34,9 +45,14 @@ agents/
   story-reviewer.md
 references/
   template.html
-  example.html
 schemas/
   mechanism.json
+examples/
+  pi-openrouter/
+    DESIGN.md
+    mechanisms.json
+    index.html
+    review.json
 ```
 
 ## Upstream
