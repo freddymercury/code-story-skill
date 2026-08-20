@@ -1,0 +1,69 @@
+<title>How the Pi Model Orchestrator Routes Work</title>
+<style>
+:root{--bg:#fffdfc;--ink:#171318;--dim:#6b6470;--rule:#e7e1e7;--panel:#fff;--acc:#4a2545;--soft:#f5eef3;--warn:#7a4a12}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 Georgia,serif}#app{max-width:1100px;margin:auto;padding:0 24px}.top{display:flex;gap:18px;align-items:baseline;border-bottom:1px solid var(--rule);padding:22px 0}.top h1{font:900 20px Georgia,serif;margin:0}.src,.count{font:12px ui-monospace,monospace;color:var(--dim)}.count{margin-left:auto}.wrap{display:grid;grid-template-columns:230px 1fr;gap:38px;padding:30px 0}.rail{border-right:1px solid var(--rule);padding-right:16px}.rail button{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 0;color:var(--dim);cursor:pointer}.rail button.on{color:var(--acc);font-weight:700}article{display:none}article.on{display:block}.hd{border-bottom:3px solid var(--ink);padding-bottom:18px;margin-bottom:24px}.eyebrow{font:11px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--dim)}h2{font-size:38px;line-height:1.08;margin:8px 0}.q{color:var(--dim);max-width:68ch}.code{border:1px solid var(--rule);background:var(--panel);margin:18px 0}.code b{display:block;padding:8px 12px;border-bottom:1px solid var(--rule);font:12px ui-monospace,monospace}.code pre{margin:0;padding:14px;overflow:auto;font:13px/1.65 ui-monospace,monospace;background:#faf7fa}.note{border-left:4px solid var(--acc);padding:8px 16px;margin:20px 0;background:var(--soft)}.warn{border-left-color:var(--warn)}ul{max-width:72ch}.nav{display:flex;gap:10px;border-top:1px solid var(--rule);padding:20px 0 36px}.nav button{padding:8px 16px;border:1px solid var(--rule);background:var(--panel);cursor:pointer}.nav .primary{background:var(--acc);color:white;border-color:var(--acc)}@media(max-width:800px){.wrap{grid-template-columns:1fr}.rail{display:none}h2{font-size:30px}}
+</style>
+<div id="app">
+<header class="top"><h1>How the Pi Model Orchestrator Routes Work</h1><span class="src">freddymercury/pi-model-orchestrator</span><span class="count" id="count"></span></header>
+<div class="wrap"><nav class="rail"><strong>Chapters</strong></nav><main>
+<article>
+<div class="hd"><span class="eyebrow">mechanism 1 · execution policy</span><h2>Why is local execution outside the low/medium/high quality ladder?</h2><p class="q">Because “easy” and “safe to wait for” are different facts. Treating Ollama as the low tier would accidentally make simple interactive work slow.</p></div>
+<p>The first decision is not model quality. It is execution mode. If a task is explicitly background work and safe for the local model, the orchestrator can choose Ollama immediately. Otherwise it returns <code>auto</code> and lets Pi's normal hosted router decide complexity.</p>
+<div class="code"><b>src/routing.ts</b><pre>if (input.locality === "local-only") return LOCAL_WORKER_MODEL;
+if (input.mode === "background" && input.localSafe) return LOCAL_WORKER_MODEL;
+return "auto";</pre></div>
+<div class="note"><strong>Key idea:</strong> local is an execution constraint, not the bottom rung of a quality ladder.</div>
+</article>
+<article>
+<div class="hd"><span class="eyebrow">mechanism 2 · hosted complexity</span><h2>How does interactive work become Haiku, DeepSeek, or Sonnet?</h2><p class="q">Once a task stays on the hosted path, Pi's three-tier router can do the job it is actually designed for: classify complexity.</p></div>
+<div class="code"><b>model-router.json</b><pre>low    → openrouter/anthropic/claude-haiku-4.5
+medium → openrouter/deepseek/deepseek-v4-flash-latest
+high   → openrouter/~anthropic/claude-sonnet-latest</pre></div>
+<p>The classifier itself is Haiku 4.5. Low-tier work stays fast and inexpensive; medium work goes to DeepSeek; high-tier work goes to the current Sonnet family. OpenRouter is not deciding task complexity here. It sits underneath the chosen hosted model and handles the provider/API path.</p>
+<div class="note warn"><strong>Watch out:</strong> the <code>latest</code> aliases move. They are useful operationally, but they trade reproducibility for automatic upgrades.</div>
+</article>
+<article>
+<div class="hd"><span class="eyebrow">mechanism 3 · agent/model separation</span><h2>How can the same worker use Ollama without becoming “the Qwen agent”?</h2><p class="q">The model is selected per invocation. Agent identity describes the job; routing context describes how that job should execute.</p></div>
+<div class="code"><b>src/spawn-worker.ts</b><pre>const model = selectWorkerModel({
+  mode: input.mode,
+  locality: input.locality ?? "hosted-ok",
+  localSafe: input.localSafe ?? false,
+});
+
+return orchestrate({ agent: "worker", task: input.task, model }, ctx as never);</pre></div>
+<p>A background symbol-extraction task can use the same <code>worker</code> agent with an explicit Ollama model. An interactive implementation task can use that same worker with <code>model: "auto"</code>. That keeps model policy outside the agent definition.</p>
+<div class="note warn"><strong>Open item:</strong> the current adapter casts the Pi runtime context. The routing idea is executable, but the integration should become type-safe with Pi's concrete context type.</div>
+</article>
+<article>
+<div class="hd"><span class="eyebrow">mechanism 4 · hard constraints</span><h2>What is allowed to override the normal model choice?</h2><p class="q">Privacy and evidence can override normal routing, but they do so for different reasons.</p></div>
+<p><strong>Locality is a hard eligibility rule.</strong> If a task is <code>local-only</code>, hosted models never enter the candidate set. Complexity classification cannot overrule that.</p>
+<p><strong>Escalation is evidence-driven.</strong> A task should move upward when execution reveals that it was under-classified—not because every cheap answer automatically deserves an expensive second opinion.</p>
+<div class="code"><b>policy.md</b><pre>local-only → remove hosted models first
+
+suggested escalation:
+local → medium → high</pre></div>
+<div class="note warn"><strong>Open item:</strong> escalation is currently policy, not retry code. The repository still needs an executable escalation/fallback layer.</div>
+</article>
+<article>
+<div class="hd"><span class="eyebrow">mechanism 5 · measured routing</span><h2>Why are benchmarks and telemetry part of the router itself?</h2><p class="q">Because “local is slow,” “Haiku is fast,” and “one local worker is enough” are assumptions until measured on the actual machine and provider path.</p></div>
+<p>The benchmark compares local and hosted low-tier work across repetitive coding tasks, records time-to-first-token, total latency, memory pressure, output quality, and retries, then tests whether concurrency improves aggregate throughput.</p>
+<div class="code"><b>benchmarks/README.md + policy.md</b><pre>measure:
+- TTFT / total latency
+- tokens / cost
+- memory pressure
+- correctness
+- fallback reason
+- chosen tier + provider</pre></div>
+<p>The initial 7B model and local concurrency of one are deliberately conservative. They should be replaced by measured policy once real numbers exist.</p>
+<div class="note warn"><strong>Open item:</strong> telemetry is specified but not emitted by the TypeScript helper yet.</div>
+<h3>Where the “why” came from</h3>
+<ul><li><strong>pi-model-router upstream:</strong> verified low/medium/high routing and classifier configuration.</li><li><strong>pi-orchestration upstream:</strong> verified per-call model override and <code>model: "auto"</code>.</li><li><strong>Pi docs:</strong> verified built-in OpenRouter support and custom Ollama registration through <code>~/.pi/agent/models.json</code>.</li><li><strong>Project policy:</strong> execution mode, privacy, escalation, observability, and conservative local concurrency.</li><li><strong>Still unresolved:</strong> typed Pi context integration, executable escalation, telemetry emission, and measured local benchmarks.</li></ul>
+</article>
+</main></div>
+<footer class="nav"><button id="prev">← Back</button><button class="primary" id="next">Next →</button></footer>
+</div>
+<script>
+const arts=[...document.querySelectorAll('article')], rail=document.querySelector('.rail'), count=document.getElementById('count');let at=0;
+arts.forEach((a,i)=>{const b=document.createElement('button');b.textContent=a.querySelector('h2').textContent;b.onclick=()=>go(i);rail.appendChild(b)});
+function go(i){at=Math.max(0,Math.min(arts.length-1,i));arts.forEach((a,j)=>a.classList.toggle('on',j===at));[...rail.querySelectorAll('button')].forEach((b,j)=>b.classList.toggle('on',j===at));count.textContent=`Chapter ${at+1} of ${arts.length}`;prev.disabled=at===0;next.disabled=at===arts.length-1;scrollTo(0,0)}
+prev.onclick=()=>go(at-1);next.onclick=()=>go(at+1);addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(at+1);if(e.key==='ArrowLeft')go(at-1)});go(0);
+</script>
