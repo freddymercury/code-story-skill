@@ -1,0 +1,89 @@
+{
+  "change": "Pi + Ollama + OpenRouter routing design",
+  "mechanisms": [
+    {
+      "question": "Why are orchestration and model routing separate decisions?",
+      "summary": "Pi orchestration decides what work becomes a sub-agent task. The model router decides what capability tier should execute that task. Keeping those responsibilities separate prevents agent roles from becoming permanent model assignments.",
+      "evidence": [
+        {"file":"examples/pi-openrouter/DESIGN.md","lines":"Agent policy / Proposed flow","role":"design contract"},
+        {"file":"pi-orchestration upstream","role":"supports model:auto and inherited registry"},
+        {"file":"pi-model-router upstream","role":"routes turns across low/medium/high tiers"}
+      ],
+      "why_sources": [
+        {"source":"pi-orchestration documentation","claim":"sub-agents can use model:auto","confidence":"documented"},
+        {"source":"pi-model-router documentation","claim":"routing is tier-based and independent from agent role","confidence":"documented"}
+      ],
+      "uncertainties": [],
+      "risks": ["If role names are mapped directly to concrete models, model choice becomes brittle as providers/models change."]
+    },
+    {
+      "question": "Why does mundane interactive work bypass the three-tier complexity router?",
+      "summary": "A mundane task can still require low latency. The three Pi tiers describe capability/complexity, so invocation context must distinguish synchronous interactive work from background work before routing mundane tasks to local hardware.",
+      "evidence": [
+        {"file":"examples/pi-openrouter/DESIGN.md","lines":"Proposed execution classes","role":"defines the four workload cells"},
+        {"file":"pi-model-router upstream","role":"documents exactly three tiers: low, medium, high"}
+      ],
+      "why_sources": [
+        {"source":"pi-model-router documentation","claim":"the extension exposes three tiers, not a separate quick tier","confidence":"documented"},
+        {"source":"design reasoning","claim":"latency sensitivity is independent from task complexity","confidence":"strong-inference"}
+      ],
+      "uncertainties": ["Exact Pi extension point for feeding interactive/background metadata into the routing decision."],
+      "risks": ["If urgency is inferred only from prompt text, background work may be sent to hosted models or interactive work may feel unnecessarily slow."]
+    },
+    {
+      "question": "How do low, medium, and high become local, economy, and premium execution?",
+      "summary": "The three router tiers are treated as capability classes rather than fixed model identities: low maps to local Ollama, medium to a cost-efficient hosted model, and high to a frontier model.",
+      "evidence": [
+        {"file":"examples/pi-openrouter/DESIGN.md","lines":"The three pi-model-router tiers map naturally to","role":"proposed tier mapping"},
+        {"file":"pi-model-router upstream","role":"profiles map low/medium/high to configurable models"}
+      ],
+      "why_sources": [
+        {"source":"pi-model-router documentation","claim":"profiles allow different concrete models per tier","confidence":"documented"},
+        {"source":"design reasoning","claim":"keeping model names out of agent definitions makes the system easier to update","confidence":"strong-inference"}
+      ],
+      "uncertainties": ["Exact local/economy/premium aliases should remain configurable and may change over time."],
+      "risks": ["A three-tier classifier can still misclassify tasks, so manual pin/override and debug visibility remain useful."]
+    },
+    {
+      "question": "What does OpenRouter route if Pi already chose the model class?",
+      "summary": "Pi chooses the model or model class. OpenRouter then serves hosted requests through its provider layer, handling provider selection and failover; optional model fallbacks are a second reliability layer.",
+      "evidence": [
+        {"file":"examples/pi-openrouter/DESIGN.md","lines":"OpenRouter policy","role":"defines gateway boundary"},
+        {"file":"OpenRouter routing documentation","role":"documents separate model and provider routing plus failover"}
+      ],
+      "why_sources": [
+        {"source":"OpenRouter documentation","claim":"model selection and provider selection are separate decisions","confidence":"documented"},
+        {"source":"OpenRouter documentation","claim":"provider failover is automatic and model fallback can be configured separately","confidence":"documented"}
+      ],
+      "uncertainties": [],
+      "risks": ["Letting both Pi and OpenRouter independently auto-select models would make routing harder to reason about and debug."]
+    },
+    {
+      "question": "Why should workers ask for capabilities instead of named models?",
+      "summary": "A worker's job describes the work, not the provider. Capability hints let the router choose an appropriate model while preserving reusable agent definitions.",
+      "evidence": [
+        {"file":"SKILL.md","lines":"Operating model","role":"defines local-ok/economy/premium hints"},
+        {"file":"examples/pi-openrouter/DESIGN.md","lines":"Agent policy","role":"applies hints to worker roles"}
+      ],
+      "why_sources": [
+        {"source":"code-story fork design","claim":"do not hard-code concrete model names in reusable skills","confidence":"documented"},
+        {"source":"pi-orchestration documentation","claim":"model:auto can inherit the model registry","confidence":"documented"}
+      ],
+      "uncertainties": ["Whether Pi should encode these hints in task metadata, role metadata, or router rules."],
+      "risks": ["If hints are too vague, the router may need additional task metadata such as latency and privacy sensitivity."]
+    },
+    {
+      "question": "How does an 18 GB M3 Pro change the local-agent policy?",
+      "summary": "Local inference is treated as a cost/privacy/background resource, not as the default reasoning engine. Concurrency stays conservative and large local models are not required for correctness.",
+      "evidence": [
+        {"file":"examples/pi-openrouter/DESIGN.md","lines":"Local machine constraint","role":"operational policy"}
+      ],
+      "why_sources": [
+        {"source":"design constraint","claim":"target hardware has 18 GB unified memory","confidence":"documented"},
+        {"source":"design reasoning","claim":"one substantial local generation at a time avoids making memory contention part of normal routing","confidence":"strong-inference"}
+      ],
+      "uncertainties": ["Benchmark the exact local model and context length on the target machine before fixing defaults."],
+      "risks": ["Aggressive local concurrency can cause memory pressure and make supposedly cheap background work slower than hosted alternatives."]
+    }
+  ]
+}
