@@ -1,0 +1,18 @@
+{
+  "blocking_issues": [],
+  "non_blocking_improvements": [
+    "Before implementing, verify the exact Pi hook for propagating interactive/background invocation metadata into routing.",
+    "Benchmark the chosen Ollama model, context size, and concurrency on the 18 GB M3 Pro before turning the local policy into a fixed default.",
+    "Add routing observability before broad use: selected tier, concrete model, OpenRouter provider, latency, tokens, cost, fallback/escalation reason.",
+    "Decide whether privacy/sensitivity is a hard override axis; sensitive tasks may need local execution even when latency would otherwise favor a hosted model."
+  ],
+  "missing_mechanisms": [],
+  "unsupported_claims": [],
+  "uncertainties_to_surface": [
+    "Capability hints local-ok/economy/premium are conventions introduced by this fork, not documented native Pi tier names.",
+    "The fast-hosted mundane path is a proposed pre-routing policy because pi-model-router exposes only low/medium/high.",
+    "Concrete Ollama, economy, and premium model aliases remain intentionally unpinned."
+  ],
+  "publish_ready": true,
+  "qualification": "Publish-ready as a design story; not implementation-ready until the urgency metadata hook and local benchmarks are verified."
+}
