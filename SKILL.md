@@ -28,15 +28,15 @@ The host/router maps capability hints to actual models. If routing metadata is u
 
 ### 1. Establish the change boundary
 
-Identify the exact target: PR, diff, branch range, or commit. Gather the changed-file inventory, additions/deletions, and relevant metadata.
+Identify the exact target: PR, diff, branch range, commit, or design description. Gather the changed-file inventory, additions/deletions, relevant metadata, or design boundary.
 
 Delegate to [`agents/change-mapper.md`](agents/change-mapper.md) with capability `local-ok` unless the change boundary itself is ambiguous.
 
 The mapper should return:
 
-- changed files and hunks
+- changed files and hunks, or design components if no code exists yet
 - important symbols added/removed/changed
-- likely cross-file relationships
+- likely cross-file or cross-component relationships
 - obvious mechanical/noise-only changes
 - candidate mechanisms, clearly marked as hypotheses rather than conclusions
 
@@ -50,6 +50,7 @@ A useful story cannot stop at changed lines. Read what explains the change:
 - unchanged callers/callees and surrounding modules
 - tests that demonstrate intended behavior
 - third-party or runtime code the change relies on, when relevant
+- for design-only stories, authoritative docs for the systems being composed
 
 Use [`agents/evidence-finder.md`](agents/evidence-finder.md) for code evidence (`local-ok` or `economy`) and [`agents/rationale-researcher.md`](agents/rationale-researcher.md) for documented reasoning (`economy`).
 
@@ -71,14 +72,14 @@ Each mechanism needs:
 
 - a reader-facing question
 - a concise explanation
-- supporting code evidence
+- supporting code/design evidence
 - source(s) for the "why"
 - uncertainty or contradictions
 - risk/watch-out notes where warranted
 
 ### 4. Author the story
 
-Read [`references/example.html`](references/example.html) before authoring. It is the specification for chapter size, note style, code density, supporting-cast treatment, and diagram restraint.
+Read [`examples/pi-openrouter/index.html`](examples/pi-openrouter/index.html) as the local finished example. It demonstrates the chapter shape, source/uncertainty treatment, diagram restraint, and how to handle a design story with no implementation diff yet.
 
 Copy [`references/template.html`](references/template.html) to the output location and write one `<article>` per mechanism into `<main>`.
 
@@ -90,8 +91,9 @@ Writing rules:
 - teach the mechanism before naming abstractions unnecessarily
 - pin claims to concrete lines when possible
 - show unchanged code when it is essential to understanding the mechanism
+- for design stories, clearly label proposed behavior versus verified host behavior
 - use diagrams only when they reveal structure the code does not
-- call out code that appears wrong or fragile instead of rationalizing it
+- call out code/design choices that appear wrong or fragile instead of rationalizing them
 - include a final section explaining where each important "why" came from
 - include unresolved questions rather than hiding them
 
@@ -103,7 +105,7 @@ The reviewer should challenge:
 
 - invented rationale
 - file-by-file organization disguised as mechanisms
-- claims not supported by cited code
+- claims not supported by cited code/docs
 - missing contradictory evidence
 - misleading simplifications
 - omitted risks or questionable implementation details
